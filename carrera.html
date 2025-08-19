@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icons/logo2.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="icons/logo2.png">
+    <link rel="shortcut icon" href="icons/logo2.png" type="image/x-icon">
+    <title>Cosmic Rally</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --space-dark: #0f0c29; --space-mid: #302b63; --space-light: #24243e;
+            --text-light: #e0e6f0; --accent-glow: #00ffff; --success-glow: #7CFC00;
+            --fail-glow: #ff4b4b; --combo-color: #ffd700; --gold-glow: #ffd700;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Baloo 2', cursive; background-color: var(--space-dark);
+            margin: 0; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; color: var(--text-light); padding: 20px;
+            position: relative; z-index: 1; overflow: hidden;
+        }
+        #starry-background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px; animation: twinkle 10s infinite linear; z-index: -2;
+        }
+        @keyframes twinkle { from { background-position: 0 0; } to { background-position: -400px -400px; } }
+        #image-overlay {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('icons/fondo.png');
+            background-size: cover; background-position: center center;
+            opacity: 0.1; z-index: -1;
+        }
+        .menu-button {
+            position: absolute; top: 25px; right: 30px; display: flex;
+            align-items: center; gap: 10px; padding: 10px 20px;
+            background: var(--gold-glow); border: 2px solid var(--gold-glow);
+            border-radius: 50px; color: var(--space-dark); text-decoration: none;
+            font-family: 'Orbitron', sans-serif; font-weight: bold;
+            transition: all 0.3s ease; z-index: 10;
+        }
+        .menu-button:hover {
+            background-color: var(--accent-glow); border-color: var(--accent-glow);
+            box-shadow: 0 0 25px var(--accent-glow); transform: translateY(-3px) scale(1.05);
+        }
+        .menu-button .fa-rocket { transform: rotate(-45deg); transition: transform 0.3s ease; }
+        .container {
+            width: 100%; max-width: 800px;
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: 25px; border-radius: 20px; text-align: center;
+            border: 2px solid var(--accent-glow); box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+            transition: transform 0.5s ease;
+        }
+        .container.shake-hard { animation: shake-hard 0.4s; }
+        @keyframes shake-hard { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+        h1 {
+            font-family: 'Orbitron', sans-serif; color: var(--accent-glow);
+            text-shadow: 0 0 15px var(--accent-glow); margin-bottom: 20px;
+        }
+        #setup-screen p { margin-bottom: 20px; }
+        .difficulty-buttons { margin-bottom: 20px; }
+        .difficulty-btn {
+            padding: 10px 20px; background-color: transparent; color: var(--accent-glow);
+            border: 2px solid var(--accent-glow); border-radius: 10px; cursor: pointer;
+            font-size: 1rem; margin: 0 5px; transition: all 0.3s;
+        }
+        .difficulty-btn:not(.active):hover { background-color: rgba(0, 255, 255, 0.3); }
+        .difficulty-btn.active { background-color: var(--accent-glow); color: var(--space-dark); }
+        
+        .start-btn, #modal-button {
+            padding: 15px 40px; background-color: var(--success-glow); color: var(--space-dark);
+            border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .start-btn:hover, #modal-button:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--success-glow); }
+        .game-header { display: flex; justify-content: space-around; margin-bottom: 20px; align-items: center; }
+        .stat { font-size: 1.2rem; }
+        #combo-meter {
+            width: 100px; height: 10px; background-color: rgba(0,0,0,0.5);
+            border: 1px solid var(--combo-color); border-radius: 5px; margin-top: 5px; display: inline-block;
+        }
+        #combo-bar { width: 0%; height: 100%; background-color: var(--combo-color); border-radius: 5px; transition: width 0.3s ease; }
+        #race-track {
+            position: relative; width: 100%; height: 60px;
+            background-color: rgba(0,0,0,0.4); border-radius: 30px; margin-bottom: 20px;
+            border: 1px solid rgba(0,255,255,0.3); overflow: hidden;
+        }
+        .rocket {
+            font-size: 2.5rem; position: absolute; top: 50%;
+            transform: translateY(-50%); left: 0; transition: left 0.5s ease-out;
+        }
+        #rival-rocket { filter: hue-rotate(220deg); }
+        #planet {
+            font-size: 2.5rem; position: absolute; top: 50%;
+            transform: translateY(-50%); right: 10px;
+        }
+        #question { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; margin: 20px 0; }
+        .options-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        
+        /* === ESTILOS PARA OPCIONES DE CARRERA (NUEVO) === */
+        .option {
+            padding: 15px; border-radius: 10px; font-size: 1.5rem;
+            background-color: rgba(0, 255, 255, 0.1); border: 2px solid rgba(0, 255, 255, 0.5);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .option:not(.disabled):hover { 
+            background-color: rgba(0, 255, 255, 0.3); transform: translateY(-5px); border-color: var(--accent-glow);
+        }
+        .option.evaluating-correct:not(.disabled):active {
+            background-color: var(--success-glow); color: var(--space-dark);
+            box-shadow: 0 0 25px var(--success-glow); transform: translateY(-2px);
+        }
+        .option.evaluating-incorrect:not(.disabled):active {
+            background-color: var(--fail-glow); color: var(--space-dark);
+            box-shadow: 0 0 25px var(--fail-glow); transform: translateY(-2px);
+        }
+        .option.correct { background-color: var(--success-glow) !important; color: var(--space-dark) !important; border-color: var(--success-glow) !important; animation: tada 0.8s; transform: translateY(0) !important; }
+        .option.incorrect { background-color: var(--fail-glow) !important; color: var(--space-dark) !important; border-color: var(--fail-glow) !important; animation: shake 0.5s; transform: translateY(0) !important; }
+        .option.disabled { pointer-events: none; opacity: 0.7; }
+        .option.disabled:not(.correct):not(.incorrect) { opacity: 0.5; }
+        /* ============================================== */
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); display: flex; justify-content: center;
+            align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: 30px; border-radius: 20px; max-width: 500px; width: 90%;
+            position: relative; text-align: center; border: 2px solid var(--accent-glow);
+            animation: pop-in 0.5s ease-out;
+        }
+        @keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes tada { from, to { transform: scale3d(1, 1, 1); } 10%, 20% { transform: scale3d(.9, .9, .9) rotate3d(0, 0, 1, -3deg); } 30%, 50%, 70%, 90% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg); } 40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); } }
+        @keyframes shake { from, to { transform: translate3d(0, 0, 0); } 10%, 30%, 50%, 70%, 90% { transform: translate3d(-10px, 0, 0); } 20%, 40%, 60%, 80% { transform: translate3d(10px, 0, 0); } }
+        
+        .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.8rem; cursor: pointer; }
+        .modal h2 { font-family: 'Orbitron', sans-serif; margin-bottom: 20px; }
+        .hidden { display: none; }
+        @media (max-width: 768px) { .menu-button { padding: 8px 15px; font-size: 0.9rem; gap: 5px; } }
+        @media (max-width: 480px) {
+            h1 { font-size: 2rem; }
+            .container { padding-top: 80px; }
+            .game-header { flex-direction: column; gap: 10px; }
+            #question { font-size: 2rem; }
+            .option { font-size: 1.2rem; padding: 12px; }
+            .menu-button { top: 15px; right: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="starry-background"></div>
+    <div id="image-overlay"></div>
+    <a href="index.html" class="menu-button"><span>MENÚ PRINCIPAL</span><i class="fas fa-rocket"></i></a>
+    <div id="game-container" class="container">
+        <div id="setup-screen">
+            <h1>COSMIC RALLY</h1>
+            <p>¡Compite contra una nave rival en una carrera de multiplicaciones! Responde correctamente para avanzar. ¡Consigue 3 aciertos seguidos para un TURBO BOOST!</p>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn active" data-difficulty="easy">FÁCIL (1-5)</button>
+                <button class="difficulty-btn" data-difficulty="hard">DIFÍCIL (6-10)</button>
+            </div>
+            <button id="start-btn" class="start-btn">COMENZAR CARRERA</button>
+        </div>
+        <div id="game-screen" class="hidden">
+            <div class="game-header">
+                <div class="stat">Tiempo: <span id="timer">60</span>s</div>
+                <div class="stat">Puntos: <span id="score">0</span></div>
+                <div class="stat">
+                    <span>Turbo:</span>
+                    <div id="combo-meter"><div id="combo-bar"></div></div>
+                </div>
+            </div>
+            <div id="race-track">
+                <div id="player-rocket" class="rocket">🔥</div>
+                <div id="rival-rocket" class="rocket">🚀</div>
+                <div id="planet">🪐</div>
+            </div>
+            <div id="question"></div>
+            <div id="options-container" class="options-container"></div>
+        </div>
+    </div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="modal-close" class="modal-close">×</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-body"></div>
+            <button id="modal-button" class="start-btn">Volver a Jugar</button>
+        </div>
+    </div>
+    <!-- AUDIO ELEMENTS -->
+    <audio id="sound-start" src="https://www.soundjay.com/buttons/sounds/button-7.mp3" preload="auto"></audio>
+    <audio id="sound-correcto" src="sound/correcto.mp3" preload="auto"></audio>
+    <audio id="sound-incorrecto" src="sound/incorrecto.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="sound/aprobado.mp3" preload="auto"></audio>
+    <audio id="sound-lose" src="sound/reprobado.mp3" preload="auto"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="progress-manager.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const startBtn = document.getElementById('start-btn');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const comboBar = document.getElementById('combo-bar');
+        const playerRocket = document.getElementById('player-rocket');
+        const rivalRocket = document.getElementById('rival-rocket');
+        const questionEl = document.getElementById('question');
+        const optionsContainer = document.getElementById('options-container');
+        const gameContainer = document.getElementById('game-container');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalButton = document.getElementById('modal-button');
+        const modalClose = document.getElementById('modal-close');
+        
+        const sounds = { 
+            start: document.getElementById('sound-start'),
+            correct: document.getElementById('sound-correcto'), 
+            incorrect: document.getElementById('sound-incorrecto'), 
+            win: document.getElementById('sound-win'), 
+            lose: document.getElementById('sound-lose'),
+        };
+        
+        let gameState = {};
+        const WIN_POSITION = 100;
+
+        function initLobby() {
+            gameState = { difficulty: 'easy' };
+            gameScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            modal.classList.add('hidden');
+        }
+
+        function startGame() {
+            sounds.start.play();
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameState = { 
+                ...gameState, score: 0, timeLeft: 60, combo: 0, 
+                playerPosition: 0, rivalPosition: 0, isGameOver: false, 
+                rivalInterval: null, gameInterval: null, currentCorrectAnswer: null
+            };
+            updateUI();
+            generateQuestion();
+            gameState.gameInterval = setInterval(updateTimer, 1000);
+            gameState.rivalInterval = setInterval(moveRival, 1500);
+        }
+
+        function setDifficulty(difficulty) {
+            gameState.difficulty = difficulty;
+            difficultyBtns.forEach(btn => { btn.classList.toggle('active', btn.dataset.difficulty === difficulty); });
+        }
+
+        function updateTimer() {
+            if (gameState.isGameOver) return;
+            gameState.timeLeft--;
+            updateUI();
+            if (gameState.timeLeft <= 0) { endGame(gameState.playerPosition > gameState.rivalPosition); }
+        }
+
+        function moveRival() {
+            if (gameState.isGameOver) return;
+            const baseSpeed = gameState.difficulty === 'easy' ? 2 : 3.5;
+            const catchUpFactor = 0.05;
+            const positionDifference = gameState.playerPosition - gameState.rivalPosition;
+            let rivalAdvance = baseSpeed - (positionDifference * catchUpFactor);
+            rivalAdvance = Math.max(1, rivalAdvance);
+            gameState.rivalPosition += rivalAdvance;
+            updateUI();
+            if (gameState.rivalPosition >= WIN_POSITION) { endGame(false); }
+        }
+
+        function generateQuestion() {
+            if (gameState.isGameOver) return;
+            const range = gameState.difficulty === 'easy' ? {min: 1, max: 5} : {min: 6, max: 10};
+            const a = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+            const b = Math.floor(Math.random() * 9) + 2;
+            const correctAnswer = a * b;
+            gameState.currentCorrectAnswer = correctAnswer;
+
+            questionEl.textContent = `${a} × ${b} = ?`;
+            let options = new Set([correctAnswer]);
+            while (options.size < 4) {
+                const offset = Math.floor(Math.random() * 10) - 5;
+                const wrongAnswer = correctAnswer + offset;
+                if (wrongAnswer > 0 && wrongAnswer !== correctAnswer) options.add(wrongAnswer);
+            }
+
+            const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+            optionsContainer.innerHTML = '';
+            shuffledOptions.forEach(opt => {
+                const el = document.createElement('button');
+                el.className = 'option';
+                el.textContent = opt;
+                
+                const isCorrect = opt === correctAnswer;
+                el.classList.add(isCorrect ? 'evaluating-correct' : 'evaluating-incorrect');
+                
+                el.addEventListener('click', () => checkAnswer(isCorrect, el), { once: true });
+                optionsContainer.appendChild(el);
+            });
+        }
+
+        function checkAnswer(isCorrect, element) {
+            if (gameState.isGameOver) return;
+            
+            const allOptions = document.querySelectorAll('.option');
+            allOptions.forEach(opt => {
+                opt.classList.add('disabled');
+                opt.classList.remove('evaluating-correct', 'evaluating-incorrect');
+            });
+
+            if (isCorrect) {
+                sounds.correct.play();
+                element.classList.add('correct');
+                gameState.score += 10;
+                gameState.combo++;
+                let advance = gameState.difficulty === 'easy' ? 5 : 4;
+
+                if (gameState.combo >= 3) {
+                    sounds.win.play(); // Usamos el sonido de "win" para el turbo
+                    advance += 15;
+                    gameState.combo = 0;
+                    confetti({ particleCount: 80, spread: 60, origin: { x: (playerRocket.offsetLeft / window.innerWidth), y: 0.7 }, angle: -90, gravity: 0.5, ticks: 150 });
+                }
+                gameState.playerPosition += advance;
+
+                if (gameState.playerPosition >= WIN_POSITION) {
+                    endGame(true);
+                }
+            } else {
+                sounds.incorrect.play();
+                element.classList.add('incorrect');
+                allOptions.forEach(opt => {
+                    if(parseInt(opt.textContent) === gameState.currentCorrectAnswer) {
+                        opt.classList.add('correct');
+                    }
+                });
+                gameContainer.classList.add('shake-hard');
+                setTimeout(() => gameContainer.classList.remove('shake-hard'), 400);
+                gameState.combo = 0;
+            }
+            
+            updateProgress(isCorrect, isCorrect ? 10 : 0);
+            updateUI();
+            
+            if (!gameState.isGameOver) {
+                setTimeout(generateQuestion, 1200);
+            }
+        }
+
+        function updateUI() {
+            timerEl.textContent = gameState.timeLeft;
+            scoreEl.textContent = gameState.score;
+            comboBar.style.width = `${(gameState.combo / 3) * 100}%`;
+            const trackWidth = playerRocket.parentElement.offsetWidth - playerRocket.offsetWidth;
+            playerRocket.style.left = `${(Math.min(gameState.playerPosition, WIN_POSITION) / WIN_POSITION) * trackWidth}px`;
+            rivalRocket.style.left = `${(Math.min(gameState.rivalPosition, WIN_POSITION) / WIN_POSITION) * trackWidth}px`;
+        }
+
+        function endGame(playerWon) {
+            if (gameState.isGameOver) return;
+            gameState.isGameOver = true;
+            clearInterval(gameState.gameInterval);
+            clearInterval(gameState.rivalInterval);
+            
+            if (playerWon) {
+                sounds.win.play();
+                modalTitle.textContent = "¡VICTORIA CÓSMICA!";
+                modalBody.innerHTML = `<p>¡Llegaste al planeta antes que tu rival!</p><p>Puntuación final: <strong>${gameState.score}</strong></p>`;
+                confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
+            } else {
+                sounds.lose.play();
+                modalTitle.textContent = "¡DERROTA POR POCO!";
+                modalBody.innerHTML = `<p>Tu rival fue más rápido esta vez.</p><p>Puntuación final: <strong>${gameState.score}</strong></p>`;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', startGame);
+        difficultyBtns.forEach(btn => btn.addEventListener('click', (e) => setDifficulty(e.target.dataset.difficulty)));
+        modalClose.addEventListener('click', initLobby);
+        modalButton.addEventListener('click', initLobby);
+        initLobby();
+    });
+    </script>
+</body>
+</html>

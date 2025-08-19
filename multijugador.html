@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icons/logo2.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="icons/logo2.png">
+    <link rel="shortcut icon" href="icons/logo2.png" type="image/x-icon">
+    <title>Cosmic Rally: Duelo de Pilotos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --space-dark: #0f0c29; --space-mid: #302b63; --space-light: #24243e;
+            --text-light: #e0e6f0; --accent-glow: #00ffff; --success-glow: #7CFC00;
+            --fail-glow: #ff4b4b; --combo-color: #ffd700; --gold-glow: #ffd700;
+            --blue-team-glow: #00aaff; --red-team-glow: #ff4b4b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden; 
+        }
+        body {
+            font-family: 'Baloo 2', cursive; background-color: var(--space-dark);
+            display: flex; justify-content: center; align-items: center;
+            color: var(--text-light); padding: 15px;
+            position: relative; z-index: 1;
+        }
+
+        #starry-background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px; animation: twinkle 10s infinite linear; z-index: -2;
+        }
+        @keyframes twinkle { from { background-position: 0 0; } to { background-position: -400px -400px; } }
+        #image-overlay {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('icons/fondo.png');
+            background-size: cover; background-position: center center; opacity: 0.1; z-index: -1;
+        }
+
+        /* ===== LAYOUT PRINCIPAL CON FLEXBOX Y POSICIÓN RELATIVA ===== */
+        .container {
+            position: relative; /* <-- AÑADIDO: Clave para posicionar el botón de menú */
+            width: 100%; max-width: 900px;
+            height: 100%; max-height: 800px;
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: clamp(10px, 3vw, 25px);
+            border-radius: 20px; text-align: center;
+            border: 2px solid var(--accent-glow); box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+            display: flex; flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* ===== ESTILO DEL BOTÓN DE MENÚ CORREGIDO ===== */
+        .menu-button {
+            position: absolute;
+            top: 0; /* Alinear al borde superior del contenedor */
+            right: clamp(20px, 5vw, 40px); /* Posición desde la derecha, responsiva */
+            transform: translateY(-50%); /* <-- AÑADIDO: Sube el botón la mitad de su altura */
+            display: flex; align-items: center;
+            gap: 10px; padding: 10px 20px; background: var(--gold-glow);
+            border: 2px solid var(--gold-glow); border-radius: 50px; color: var(--space-dark);
+            text-decoration: none; font-family: 'Orbitron', sans-serif; font-weight: bold;
+            transition: all 0.3s ease; z-index: 20; /* Z-index alto para estar encima de todo */
+        }
+        .menu-button:hover {
+            background-color: var(--accent-glow); border-color: var(--accent-glow);
+            box-shadow: 0 0 25px var(--accent-glow);
+            /* Combinar transformaciones para mantener el posicionamiento */
+            transform: translateY(-50%) translateY(-3px) scale(1.05);
+        }
+        .menu-button .fa-rocket { transform: rotate(-45deg); transition: transform 0.3s ease; }
+        
+        #game-screen {
+            display: flex; flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        .container.shake-hard { animation: shake-hard 0.4s; }
+        @keyframes shake-hard { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif; color: var(--accent-glow);
+            text-shadow: 0 0 15px var(--accent-glow); margin-bottom: 20px;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+        }
+        #setup-screen p { margin-bottom: 20px; font-size: clamp(0.9rem, 2.5vw, 1.1rem); }
+        .start-btn {
+            padding: 15px 40px; background-color: var(--success-glow); color: var(--space-dark);
+            border: none; border-radius: 50px; font-size: clamp(1rem, 3vw, 1.2rem); font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .start-btn:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--success-glow); }
+
+        .game-header { display: flex; justify-content: space-between; gap: clamp(10px, 2vw, 20px); flex: 0 0 auto; }
+        .player-stats { flex: 1; padding: clamp(5px, 2vw, 10px); border-radius: 10px; transition: all 0.3s ease; }
+        .player-stats.active { transform: scale(1.05); box-shadow: 0 0 20px currentColor; }
+        #player1-stats { color: var(--blue-team-glow); border: 2px solid var(--blue-team-glow); }
+        #player2-stats { color: var(--red-team-glow); border: 2px solid var(--red-team-glow); }
+        .player-stats h2 { font-family: 'Orbitron', sans-serif; font-size: clamp(0.9rem, 3vw, 1.2rem); margin-bottom: 10px; }
+        .stat { font-size: clamp(0.8rem, 2.5vw, 1rem); margin-bottom: 5px; }
+        
+        #race-track { position: relative; width: 100%; height: 80px; background-color: rgba(0,0,0,0.4); border-radius: 40px; margin: 15px 0; border: 1px solid rgba(0,255,255,0.3); overflow: hidden; flex: 0 0 80px; }
+        .rocket { width: 80px; height: 32px; position: absolute; left: 0; transition: left 0.5s ease-out; filter: drop-shadow(0 0 5px currentColor); }
+        #player1-rocket { top: 5px; color: var(--blue-team-glow); }
+        #player2-rocket { bottom: 5px; color: var(--red-team-glow); }
+        .ship-body { stroke: var(--text-light); stroke-width: 2; }
+        .ship-engine { animation: engine-flicker 0.3s infinite ease-in-out; }
+        @keyframes engine-flicker { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        #planet { font-size: 3.5rem; position: absolute; top: 50%; transform: translateY(-50%); right: 10px; }
+
+        #question-area { flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; }
+        #question { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem, 6vw, 3rem); margin: 1vh 0; }
+        #turn-timer { height: 5px; background-color: rgba(0,0,0,0.5); border-radius: 5px; margin-top: 15px; }
+        #turn-timer-bar { height: 100%; background-color: var(--combo-color); border-radius: 5px; transition: width 0.2s linear; }
+
+        .options-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .option { padding: clamp(10px, 3vh, 15px); border-radius: 10px; font-size: clamp(1.2rem, 4vw, 1.8rem); background-color: rgba(0, 255, 255, 0.1); border: 2px solid rgba(0, 255, 255, 0.5); cursor: pointer; transition: all 0.2s; }
+        .option:not(.disabled):hover { background-color: rgba(0, 255, 255, 0.3); transform: translateY(-5px); border-color: var(--accent-glow); }
+        .option.evaluating-correct:not(.disabled):active { background-color: var(--success-glow); color: var(--space-dark); box-shadow: 0 0 25px var(--success-glow); transform: translateY(-2px); }
+        .option.evaluating-incorrect:not(.disabled):active { background-color: var(--fail-glow); color: var(--space-dark); box-shadow: 0 0 25px var(--fail-glow); transform: translateY(-2px); }
+        .option.correct { background-color: var(--success-glow) !important; color: var(--space-dark) !important; border-color: var(--success-glow) !important; animation: tada 0.8s; transform: translateY(0) !important; }
+        .option.incorrect { background-color: var(--fail-glow) !important; color: var(--space-dark) !important; border-color: var(--fail-glow) !important; animation: shake 0.5s; transform: translateY(0) !important; }
+        .option.disabled { pointer-events: none; opacity: 0.7; }
+        .option.disabled:not(.correct):not(.incorrect) { opacity: 0.5; }
+
+        #turn-announcement { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #turn-announcement.visible { opacity: 1; pointer-events: all; }
+        #turn-announcement h2 { font-family: 'Orbitron', sans-serif; font-size: clamp(2.5rem, 10vw, 4rem); text-shadow: 0 0 25px currentColor; animation: pop-in 0.5s ease-out forwards; }
+        #turn-announcement.blue h2 { color: var(--blue-team-glow); }
+        #turn-announcement.red h2 { color: var(--red-team-glow); }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: linear-gradient(145deg, var(--space-mid), var(--space-light)); padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; position: relative; text-align: center; border: 2px solid var(--accent-glow); animation: pop-in 0.5s ease-out; }
+        @keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes tada { from, to { transform: scale3d(1, 1, 1); } 10%, 20% { transform: scale3d(.9, .9, .9) rotate3d(0, 0, 1, -3deg); } 30%, 50%, 70%, 90% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg); } 40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); } }
+        @keyframes shake { from, to { transform: translate3d(0, 0, 0); } 10%, 30%, 50%, 70%, 90% { transform: translate3d(-10px, 0, 0); } 20%, 40%, 60%, 80% { transform: translate3d(10px, 0, 0); } }
+        
+        .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.8rem; cursor: pointer; }
+        .modal h2 { font-family: 'Orbitron', sans-serif; margin-bottom: 20px; }
+        .hidden { display: none !important; }
+
+        @media (max-height: 480px) and (orientation: landscape) {
+            .game-header { flex-direction: row; align-items: center; }
+            .player-stats h2 { font-size: 0.8rem; margin-bottom: 2px; }
+            .stat { font-size: 0.7rem; }
+            #race-track { height: 60px; flex-basis: 60px; margin: 10px 0;}
+            .rocket { width: 60px; height: 24px; }
+            #planet { font-size: 2.5rem; }
+            .menu-button { top: 10px; right: 15px; padding: 5px 10px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="starry-background"></div>
+    <div id="image-overlay"></div>
+    
+    <div id="game-container" class="container">
+        <!-- ===== ESTRUCTURA HTML CORREGIDA ===== -->
+        <a href="index.html" class="menu-button"><span>MENÚ</span><i class="fas fa-rocket"></i></a>
+
+        <div id="setup-screen">
+            <h1>COSMIC RALLY: DUELO DE PILOTOS</h1>
+            <p>¡Dos pilotos, una carrera! El Equipo Azul y el Equipo Rojo compiten por turnos. Respondan correctamente para avanzar su nave. ¡El primero en llegar al planeta, gana!</p>
+            <button id="start-btn" class="start-btn">COMENZAR DUELO</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="game-header">
+                <div id="player1-stats" class="player-stats">
+                    <h2>EQUIPO AZUL</h2>
+                    <div class="stat">Puntos: <span id="player1-score">0</span></div>
+                    <div class="stat">Turbo: <span id="player1-combo">0</span>/3</div>
+                </div>
+                <div id="player2-stats" class="player-stats">
+                    <h2>EQUIPO ROJO</h2>
+                    <div class="stat">Puntos: <span id="player2-score">0</span></div>
+                    <div class="stat">Turbo: <span id="player2-combo">0</span>/3</div>
+                </div>
+            </div>
+            <div id="race-track">
+                <div id="player1-rocket" class="rocket">
+                    <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <polygon class="ship-engine" points="0,20 15,15 15,25" fill="#ffeb3b" />
+                        <polygon class="ship-body" points="10,20 30,5 95,15 95,25 30,35" fill="currentColor"/>
+                        <circle cx="75" cy="20" r="4" fill="#0f0c29" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </div>
+                <div id="player2-rocket" class="rocket">
+                     <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <polygon class="ship-engine" points="0,15 15,15 10,20" fill="#ffeb3b" />
+                        <polygon class="ship-engine" points="0,25 15,25 10,20" fill="#ffeb3b" />
+                        <polygon class="ship-body" points="10,20 25,10 40,10 90,0 95,20 90,40 40,30 25,30" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div id="planet">🪐</div>
+            </div>
+            <div id="question-area">
+                <div id="question"></div>
+                <div id="options-container" class="options-container"></div>
+                <div id="turn-timer"><div id="turn-timer-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="turn-announcement">
+        <h2 id="turn-text"></h2>
+    </div>
+    
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="modal-close" class="modal-close">×</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-body"></div>
+            <button id="modal-button" class="start-btn">Volver a Jugar</button>
+        </div>
+    </div>
+    
+    <!-- AUDIO ELEMENTS -->
+    <audio id="sound-start" src="https://www.soundjay.com/buttons/sounds/button-7.mp3" preload="auto"></audio>
+    <audio id="sound-correcto" src="sound/correcto.mp3" preload="auto"></audio>
+    <audio id="sound-incorrecto" src="sound/incorrecto.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="sound/aprobado.mp3" preload="auto"></audio>
+    <audio id="sound-lose" src="sound/reprobado.mp3" preload="auto"></audio>
+    <audio id="sound-azul" src="sound/azul.mp3" preload="auto"></audio>
+    <audio id="sound-rojo" src="sound/rojo.mp3" preload="auto"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="progress-manager.js"></script>
+    <script>
+        // El JavaScript es idéntico a la versión anterior.
+        document.addEventListener('DOMContentLoaded', () => {
+            const setupScreen = document.getElementById('setup-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const startBtn = document.getElementById('start-btn');
+            const questionArea = document.getElementById('question-area');
+            const questionEl = document.getElementById('question');
+            const optionsContainer = document.getElementById('options-container');
+            const gameContainer = document.getElementById('game-container');
+            
+            const player1 = {
+                stats: document.getElementById('player1-stats'),
+                score: document.getElementById('player1-score'),
+                combo: document.getElementById('player1-combo'),
+                rocket: document.getElementById('player1-rocket')
+            };
+            const player2 = {
+                stats: document.getElementById('player2-stats'),
+                score: document.getElementById('player2-score'),
+                combo: document.getElementById('player2-combo'),
+                rocket: document.getElementById('player2-rocket')
+            };
+            
+            const turnTimerBar = document.getElementById('turn-timer-bar');
+            const turnAnnouncement = document.getElementById('turn-announcement');
+            const turnText = document.getElementById('turn-text');
+            
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalButton = document.getElementById('modal-button');
+            const modalClose = document.getElementById('modal-close');
+            
+            const sounds = { 
+                start: document.getElementById('sound-start'),
+                correct: document.getElementById('sound-correcto'), 
+                incorrect: document.getElementById('sound-incorrecto'), 
+                win: document.getElementById('sound-win'), 
+                lose: document.getElementById('sound-lose'),
+                blue: document.getElementById('sound-azul'),
+                red: document.getElementById('sound-rojo'),
+            };
+            
+            let gameState = {};
+            const WIN_POSITION = 100;
+            const TURN_TIME = 10;
+
+            function initLobby() {
+                gameScreen.classList.add('hidden');
+                setupScreen.classList.remove('hidden');
+                modal.classList.add('hidden');
+            }
+
+            function startGame() {
+                sounds.start.play();
+                setupScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                
+                gameState = {
+                    players: {
+                        player1: { score: 0, combo: 0, position: 0 },
+                        player2: { score: 0, combo: 0, position: 0 }
+                    },
+                    currentPlayer: 'player2',
+                    isGameOver: false,
+                    currentCorrectAnswer: null,
+                    turnInterval: null,
+                };
+                
+                updateUI();
+                switchTurn();
+            }
+
+            function switchTurn() {
+                if (gameState.isGameOver) return;
+                
+                clearInterval(gameState.turnInterval);
+                questionArea.classList.add('hidden');
+
+                gameState.currentPlayer = gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
+                
+                const isPlayer1 = gameState.currentPlayer === 'player1';
+                const teamName = isPlayer1 ? 'EQUIPO AZUL' : 'EQUIPO ROJO';
+                const teamColorClass = isPlayer1 ? 'blue' : 'red';
+                
+                turnText.textContent = `¡TURNO DEL ${teamName}!`;
+                turnAnnouncement.className = teamColorClass;
+                turnAnnouncement.classList.add('visible');
+                
+                (isPlayer1 ? sounds.blue : sounds.red).play();
+
+                setTimeout(() => {
+                    turnAnnouncement.classList.remove('visible');
+                    questionArea.classList.remove('hidden');
+                    generateQuestion();
+                    startTurnTimer();
+                    updateUI();
+                }, 2500);
+            }
+
+            function startTurnTimer() {
+                gameState.timeLeft = TURN_TIME;
+                turnTimerBar.style.transition = 'none';
+                turnTimerBar.style.width = '100%';
+                
+                void turnTimerBar.offsetWidth; 
+                
+                turnTimerBar.style.transition = `width ${TURN_TIME}s linear`;
+                turnTimerBar.style.width = '0%';
+
+                gameState.turnInterval = setInterval(() => {
+                    gameState.timeLeft--;
+                    if (gameState.timeLeft < 0) {
+                        clearInterval(gameState.turnInterval);
+                        handleTimeOut();
+                    }
+                }, 1000);
+            }
+
+            function handleTimeOut() {
+                sounds.incorrect.play();
+                gameContainer.classList.add('shake-hard');
+                setTimeout(() => gameContainer.classList.remove('shake-hard'), 400);
+                
+                const activePlayerState = gameState.players[gameState.currentPlayer];
+                activePlayerState.combo = 0;
+                
+                updateProgress(false, 0);
+                switchTurn();
+            }
+
+            function generateQuestion() {
+                const a = Math.floor(Math.random() * 9) + 2;
+                const b = Math.floor(Math.random() * 9) + 2;
+                gameState.currentCorrectAnswer = a * b;
+
+                questionEl.textContent = `${a} × ${b} = ?`;
+                let options = new Set([gameState.currentCorrectAnswer]);
+                while (options.size < 4) {
+                    const offset = Math.floor(Math.random() * 10) - 5;
+                    const wrongAnswer = gameState.currentCorrectAnswer + offset;
+                    if (wrongAnswer > 0 && wrongAnswer !== gameState.currentCorrectAnswer) options.add(wrongAnswer);
+                }
+
+                const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+                optionsContainer.innerHTML = '';
+                shuffledOptions.forEach(opt => {
+                    const el = document.createElement('button');
+                    el.className = 'option';
+                    el.textContent = opt;
+                    
+                    const isCorrect = opt === gameState.currentCorrectAnswer;
+                    el.classList.add(isCorrect ? 'evaluating-correct' : 'evaluating-incorrect');
+                    
+                    el.addEventListener('click', () => checkAnswer(isCorrect, el), { once: true });
+                    optionsContainer.appendChild(el);
+                });
+            }
+
+            function checkAnswer(isCorrect, element) {
+                clearInterval(gameState.turnInterval);
+                turnTimerBar.style.transition = 'none';
+
+                const allOptions = document.querySelectorAll('.option');
+                allOptions.forEach(opt => {
+                    opt.classList.add('disabled');
+                    opt.classList.remove('evaluating-correct', 'evaluating-incorrect');
+                });
+                
+                const activePlayerState = gameState.players[gameState.currentPlayer];
+
+                if (isCorrect) {
+                    sounds.correct.play();
+                    element.classList.add('correct');
+                    activePlayerState.score += 10 + (gameState.timeLeft * 2); 
+                    activePlayerState.combo++;
+                    let advance = 8;
+
+                    if (activePlayerState.combo >= 3) {
+                        sounds.win.play(); 
+                        advance += 15;
+                        activePlayerState.combo = 0;
+                        const rocketEl = gameState.currentPlayer === 'player1' ? player1.rocket : player2.rocket;
+                        confetti({ particleCount: 80, spread: 60, origin: { x: (rocketEl.offsetLeft / window.innerWidth), y: 0.7 }, angle: -90, gravity: 0.5, ticks: 150 });
+                    }
+                    activePlayerState.position += advance;
+
+                } else {
+                    sounds.incorrect.play();
+                    element.classList.add('incorrect');
+                    allOptions.forEach(opt => {
+                        if(parseInt(opt.textContent) === gameState.currentCorrectAnswer) opt.classList.add('correct');
+                    });
+                    gameContainer.classList.add('shake-hard');
+                    setTimeout(() => gameContainer.classList.remove('shake-hard'), 400);
+                    activePlayerState.combo = 0;
+                }
+                
+                updateProgress(isCorrect, isCorrect ? 10 : 0);
+                updateUI();
+                
+                if (activePlayerState.position >= WIN_POSITION) {
+                    setTimeout(() => endGame(true), 1200);
+                } else {
+                    setTimeout(switchTurn, 1500);
+                }
+            }
+
+            function updateUI() {
+                player1.score.textContent = gameState.players.player1.score;
+                player1.combo.textContent = `${gameState.players.player1.combo}/3`;
+                player2.score.textContent = gameState.players.player2.score;
+                player2.combo.textContent = `${gameState.players.player2.combo}/3`;
+                
+                const trackWidth = player1.rocket.parentElement.offsetWidth - player1.rocket.clientWidth;
+                player1.rocket.style.left = `${(Math.min(gameState.players.player1.position, WIN_POSITION) / WIN_POSITION) * trackWidth}px`;
+                player2.rocket.style.left = `${(Math.min(gameState.players.player2.position, WIN_POSITION) / WIN_POSITION) * trackWidth}px`;
+                
+                player1.stats.classList.toggle('active', gameState.currentPlayer === 'player1' && !gameState.isGameOver);
+                player2.stats.classList.toggle('active', gameState.currentPlayer === 'player2' && !gameState.isGameOver);
+            }
+
+            function endGame(winnerFound) {
+                if (gameState.isGameOver) return;
+                gameState.isGameOver = true;
+                clearInterval(gameState.turnInterval);
+                
+                const winnerIsPlayer1 = gameState.players.player1.position >= WIN_POSITION;
+                const winnerName = winnerIsPlayer1 ? "EQUIPO AZUL" : "EQUIPO ROJO";
+                const winnerColor = winnerIsPlayer1 ? "var(--blue-team-glow)" : "var(--red-team-glow)";
+                
+                sounds.win.play();
+                modalTitle.style.color = winnerColor;
+                modalTitle.style.textShadow = `0 0 15px ${winnerColor}`;
+                modalTitle.textContent = `¡VICTORIA PARA EL ${winnerName}!`;
+                modalBody.innerHTML = `
+                    <p>Puntuación Equipo Azul: <strong>${gameState.players.player1.score}</strong></p>
+                    <p>Puntuación Equipo Rojo: <strong>${gameState.players.player2.score}</strong></p>
+                `;
+                
+                modal.classList.remove('hidden');
+                confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
+            }
+
+            startBtn.addEventListener('click', startGame);
+            modalClose.addEventListener('click', initLobby);
+            modalButton.addEventListener('click', initLobby);
+
+            initLobby();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icons/logo2.png" type="image/x-icon">
+    <title>Campo de Entrenamiento</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+    
+    <style>
+        .container { justify-content: center; }
+        #difficulty-screen p { margin-bottom: 30px; font-size: 1.1rem; }
+        .difficulty-selection { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .difficulty-btn { padding: 15px 30px; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; border: 2px solid var(--accent-glow); border-radius: 15px; background-color: transparent; color: var(--accent-glow); cursor: pointer; transition: all 0.3s ease; width: 80%; max-width: 400px; }
+        .difficulty-btn:hover { background-color: var(--accent-glow); color: var(--space-dark); transform: scale(1.05); }
+        .difficulty-btn.completed { border-color: var(--success-glow); }
+
+        #game-screen { height: 100%; display: flex; flex-direction: column; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0;}
+        .exit-btn { font-size: 2rem; color: var(--fail-glow); cursor: pointer; }
+        .game-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #question { font-size: clamp(3rem, 8vw, 5rem); margin-bottom: 20px; }
+        #options-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <div id="starry-background"></div>
+    <div id="image-overlay"></div>
+    <a href="index.html" class="menu-button sound-on-hover"><span>MAPA</span><i class="fas fa-map-signs"></i></a>
+    
+    <div class="container">
+        <!-- Pantalla 1: Selección de Dificultad -->
+        <div id="difficulty-screen">
+            <h1>CAMPO DE ENTRENAMIENTO</h1>
+            <p>Elige un nivel de dificultad para comenzar la práctica.</p>
+            <div id="difficulty-selection" class="difficulty-selection"></div>
+        </div>
+
+        <!-- Pantalla 2: El Juego -->
+        <div id="game-screen" class="hidden">
+            <div class="game-header">
+                <h2 id="level-title" class="game-title"></h2>
+                <i id="exit-game-btn" class="fas fa-times-circle exit-btn sound-on-hover"></i>
+            </div>
+            <div class="game-content">
+                <div id="question"></div>
+                <div id="options-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="modal-close" class="modal-close">×</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-body"></div>
+            <div id="modal-buttons-container" class="modal-buttons"></div>
+        </div>
+    </div>
+
+    <button id="global-mute-btn" class="sound-on-hover" style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--accent-glow); background-color: var(--space-mid); color: var(--accent-glow); font-size: 1.5rem; z-index: 1001;">
+        <i id="global-mute-icon" class="fas fa-volume-up"></i>
+    </button>
+    
+    <audio id="sound-clic" src="sound/clic.mp3" preload="auto"></audio>
+    <audio id="sound-correct" src="sound/correcto.mp3" preload="auto"></audio>
+    <audio id="sound-incorrect" src="sound/incorrecto.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="sound/aprobado.mp3" preload="auto"></audio>
+    <audio id="sound-station-complete" src="sound/fanfare.mp3" preload="auto"></audio>
+    <audio id="background-music" src="sound/background.mp3" loop preload="auto"></audio>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="utils.js"></script>
+    <script src="progress-manager.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Referencias ---
+        const difficultyScreen = document.getElementById('difficulty-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const difficultySelection = document.getElementById('difficulty-selection');
+        const questionEl = document.getElementById('question');
+        const optionsContainer = document.getElementById('options-container');
+        const exitGameBtn = document.getElementById('exit-game-btn');
+        const levelTitleEl = document.getElementById('level-title');
+        
+        let gameState = {};
+        const levels = {
+            easy: { key: 'easy', name: 'Fácil', range: [1, 4] },
+            medium: { key: 'medium', name: 'Medio', range: [5, 7] },
+            hard: { key: 'hard', name: 'Experto', range: [8, 10] }
+        };
+
+        function showScreen(screenId) {
+            difficultyScreen.classList.add('hidden');
+            gameScreen.classList.add('hidden');
+            if (screenId === 'difficulty') {
+                difficultyScreen.classList.remove('hidden');
+            } else if (screenId === 'game') {
+                gameScreen.classList.remove('hidden');
+            }
+        }
+
+        function setupLevelSelection() {
+            difficultySelection.innerHTML = '';
+            const practiceProgress = ProgressManager.get().stations.practicar;
+            
+            Object.values(levels).forEach(level => {
+                const button = document.createElement('button');
+                button.className = 'difficulty-btn sound-on-hover';
+                if (practiceProgress[level.key]) button.classList.add('completed');
+                
+                button.textContent = level.name;
+                if (practiceProgress[level.key]) button.innerHTML += ' ✔️';
+                
+                button.addEventListener('click', () => {
+                    GameUtils.playSound('sound-clic');
+                    startGame(level);
+                });
+                difficultySelection.appendChild(button);
+            });
+            showScreen('difficulty');
+        }
+
+        function startGame(level) {
+            gameState = {
+                level: level,
+                questionsAnswered: 0,
+                totalQuestions: 10,
+                correctAnswers: 0
+            };
+            levelTitleEl.textContent = `Nivel: ${level.name}`;
+            generateQuestion();
+            showScreen('game');
+        }
+        
+        function generateQuestion() {
+            if (gameState.questionsAnswered >= gameState.totalQuestions) {
+                endLevel();
+                return;
+            }
+
+            const [min, max] = gameState.level.range;
+            const num1 = Math.floor(Math.random() * (max - min + 1)) + min;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            const correctAnswer = num1 * num2;
+            
+            questionEl.textContent = `${num1} × ${num2} = ?`;
+
+            let options = new Set([correctAnswer]);
+            while (options.size < 4) {
+                const offset = Math.floor(Math.random() * 10) - 5;
+                if (offset !== 0 && correctAnswer + offset > 0) {
+                    options.add(correctAnswer + offset);
+                }
+            }
+
+            optionsContainer.innerHTML = "";
+            Array.from(options).sort(() => 0.5 - Math.random()).forEach(value => {
+                const button = document.createElement("div");
+                button.className = "option";
+                button.textContent = value;
+                button.addEventListener("click", () => checkAnswer(value, correctAnswer, button), { once: true });
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        function checkAnswer(selectedValue, correctAnswer, clickedButton) {
+            document.querySelectorAll(".option").forEach(btn => btn.style.pointerEvents = 'none');
+            gameState.questionsAnswered++;
+            const isCorrect = selectedValue === correctAnswer;
+            ProgressManager.updateStats(isCorrect, isCorrect ? 10 : 0);
+
+            if (isCorrect) {
+                GameUtils.playSound("sound-correct");
+                clickedButton.classList.add("correct");
+                gameState.correctAnswers++;
+            } else {
+                GameUtils.playSound("sound-incorrect");
+                clickedButton.classList.add("incorrect");
+                document.querySelectorAll(".option").forEach(opt => {
+                    if (parseInt(opt.textContent) === correctAnswer) opt.classList.add("correct");
+                });
+            }
+
+            setTimeout(generateQuestion, 1500);
+        }
+
+        function endLevel() {
+            ProgressManager.setLevelAsCompleted("practicar", gameState.level.key);
+            
+            const progress = ProgressManager.get();
+            const allLevelsCompleted = Object.values(levels).every(level => progress.stations.practicar[level.key]);
+
+            if (allLevelsCompleted) {
+                ProgressManager.completeStation("practicar");
+                GameUtils.playSound("sound-station-complete");
+                GameUtils.showModal({
+                    title: "¡Estación de Entrenamiento Superada!",
+                    bodyHTML: `<p>Has dominado todos los niveles de dificultad. ¡Tus habilidades son impresionantes!</p><div style="font-size: 4rem;">🎯</div>`,
+                    buttons: [{ text: "Volver al Mapa", class: "primary", action: () => { window.location.href = "index.html"; } }]
+                });
+            } else {
+                GameUtils.playSound("sound-win");
+                GameUtils.showModal({
+                    title: `¡Nivel ${gameState.level.name} Completado!`,
+                    bodyHTML: `<p>Has respondido ${gameState.correctAnswers} de ${gameState.totalQuestions} correctamente.</p>`,
+                    buttons: [{ text: "Elegir Otro Nivel", class: "primary", action: setupLevelSelection }]
+                });
+            }
+        }
+        
+        // --- Event Listeners ---
+        exitGameBtn.addEventListener('click', () => {
+            GameUtils.playSound('sound-clic');
+            setupLevelSelection();
+        });
+        document.getElementById('modal-close').addEventListener('click', () => GameUtils.hideModal());
+        document.getElementById('global-mute-btn').addEventListener('click', () => GameUtils.toggleMuteGlobal());
+        
+        // --- Iniciar ---
+        setupLevelSelection();
+    });
+    </script>
+</body>
+</html>

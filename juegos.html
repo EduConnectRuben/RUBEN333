@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icons/logo2.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="icons/logo2.png">
+    <link rel="shortcut icon" href="icons/logo2.png" type="image/x-icon">
+    <title>Galactic Arcade de Multiplicación</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://css.gg/css?family=Baloo+2:wght@700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --space-dark: #0f0c29; --space-mid: #302b63; --space-light: #24243e;
+            --text-light: #e0e6f0; --accent-glow: #00ffff; --success-glow: #7CFC00;
+            --fail-glow: #ff4b4b; --star-color: #ffd700; --gold-glow: #ffd700;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Baloo 2', cursive; background-color: var(--space-dark);
+            margin: 0; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; color: var(--text-light); padding: 20px;
+            position: relative; z-index: 1; overflow: hidden;
+        }
+        #starry-background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px; animation: twinkle 10s infinite linear; z-index: -2;
+        }
+        @keyframes twinkle { from { background-position: 0 0; } to { background-position: -400px -400px; } }
+        #image-overlay {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('icons/fondo.png');
+            background-size: cover; background-position: center center;
+            opacity: 0.1; z-index: -1;
+        }
+        .menu-button {
+            position: absolute; top: 25px; right: 30px; display: flex;
+            align-items: center; gap: 10px; padding: 10px 20px;
+            background: var(--gold-glow); border: 2px solid var(--gold-glow);
+            border-radius: 50px; color: var(--space-dark); text-decoration: none;
+            
+            font-family: 'Orbitron', sans-serif; font-weight: bold;
+            transition: all 0.3s ease; z-index: 10;
+        }
+        .menu-button:hover {
+            background-color: var(--accent-glow); border-color: var(--accent-glow);
+            box-shadow: 0 0 25px var(--accent-glow); transform: translateY(-3px) scale(1.05);
+        }
+        .menu-button .fa-rocket { transform: rotate(-45deg); transition: transform 0.3s ease; }
+        .container { max-width: 1200px; width: 100%; margin: 0 auto; }
+        .main-title {
+            font-family: 'Orbitron', sans-serif; text-align: center; font-size: 2.5rem;
+            color: var(--accent-glow); text-shadow: 0 0 15px var(--accent-glow);
+            margin-bottom: 30px;
+        }
+        .game-selection {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+        .game-card {
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: 20px; border-radius: 20px; text-align: center;
+            border: 2px solid var(--accent-glow);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        .game-card:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 0 35px var(--accent-glow); }
+        .game-card h2 {
+            font-family: 'Orbitron', sans-serif; color: var(--accent-glow);
+            margin-bottom: 15px; font-size: 1.8rem;
+        }
+        .game-card p { color: var(--text-light); margin-bottom: 20px; font-size: 1rem; }
+        .game-start-btn, .modal-button {
+            padding: 12px 30px; background-color: transparent; color: var(--accent-glow);
+            border: 2px solid var(--accent-glow); border-radius: 50px;
+            font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            transition: all 0.3s;
+        }
+        .game-start-btn:hover, .modal-button:hover { background-color: var(--accent-glow); color: var(--space-dark); }
+        .hidden { display: none !important; }
+        .game-container {
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: 25px; border-radius: 20px; border: 2px solid var(--accent-glow);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+        }
+        .game-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,255,0.3); padding-bottom: 15px;
+        }
+        .game-title { font-family: 'Orbitron', sans-serif; color: var(--accent-glow); }
+        .game-stats { display: flex; gap: 15px; }
+        .stat {
+            background-color: rgba(0,0,0,0.3); padding: 8px 15px;
+            border-radius: 20px; font-weight: bold;
+        }
+        .exit-btn {
+            background: transparent; color: var(--fail-glow); border: 2px solid var(--fail-glow);
+            border-radius: 20px; font-weight: bold; cursor: pointer; padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        .exit-btn:hover { background-color: var(--fail-glow); color: var(--space-dark); }
+        #lightning-game .question { font-size: 3rem; text-align: center; margin: 20px 0; color: white; }
+        #lightning-game .options {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px auto; max-width: 500px;
+        }
+        
+        /* === ESTILOS PARA OPCIONES DE ATAQUE DE ASTEROIDES (CORREGIDO) === */
+        #lightning-game .option {
+            padding: 20px; background-color: rgba(0, 255, 255, 0.1); font-size: 1.8rem;
+            border: 2px solid rgba(0, 255, 255, 0.5); border-radius: 15px; text-align: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        /* Hover normal */
+        #lightning-game .option:not(.disabled):hover { 
+            background-color: rgba(0, 255, 255, 0.3); 
+            transform: translateY(-5px); 
+            border-color: var(--accent-glow);
+        }
+        /* Clic en la opción correcta */
+        #lightning-game .option.evaluating-correct:not(.disabled):active {
+            background-color: var(--success-glow);
+            color: var(--space-dark);
+            box-shadow: 0 0 25px var(--success-glow);
+            transform: translateY(-2px);
+        }
+        /* Clic en la opción incorrecta */
+        #lightning-game .option.evaluating-incorrect:not(.disabled):active {
+            background-color: var(--fail-glow);
+            color: var(--space-dark);
+            box-shadow: 0 0 25px var(--fail-glow);
+            transform: translateY(-2px);
+        }
+        /* Estados finales */
+        .option.correct { background-color: var(--success-glow) !important; color: var(--space-dark) !important; border-color: var(--success-glow) !important; animation: tada 0.8s; transform: translateY(0) !important; }
+        .option.incorrect { background-color: var(--fail-glow) !important; color: var(--space-dark) !important; border-color: var(--fail-glow) !important; animation: shake 0.5s; transform: translateY(0) !important; }
+        .option.disabled { pointer-events: none; opacity: 0.7; }
+        .option.disabled:not(.correct):not(.incorrect) { opacity: 0.5; } /* Ocultar más las no seleccionadas */
+        /* ============================================================== */
+
+        .memory-board {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;
+            perspective: 1000px;
+        }
+        .memory-card {
+            height: 100px; position: relative; cursor: pointer;
+            transform-style: preserve-3d; transition: transform 0.6s, box-shadow 0.2s;
+        }
+        .memory-card:active .back-face {
+            box-shadow: 0 0 25px var(--accent-glow);
+            border-color: var(--accent-glow);
+        }
+        .memory-card.flip { transform: rotateY(180deg); }
+        .memory-card .front-face, .memory-card .back-face {
+            position: absolute; width: 100%; height: 100%; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; font-weight: bold; backface-visibility: hidden;
+            transition: box-shadow 0.3s, border-color 0.3s, background-color 0.3s, color 0.3s;
+        }
+        .memory-card .front-face { 
+            background-color: var(--space-light); border: 2px solid var(--accent-glow);
+            transform: rotateY(180deg);
+        }
+        .memory-card .back-face { background-color: var(--space-mid); border: 2px solid rgba(0,255,255,0.4); font-size: 2.5rem; }
+        .memory-card.matched .front-face { background-color: var(--success-glow); color: var(--space-dark); border-color: var(--success-glow); box-shadow: 0 0 15px var(--success-glow); }
+        .memory-card.correct .front-face { animation: tada 0.8s; }
+        .memory-card.incorrect { animation: shake 0.5s; }
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: linear-gradient(145deg, var(--space-mid), var(--space-light));
+            padding: 30px; border-radius: 20px; max-width: 500px; width: 90%;
+            position: relative; text-align: center; border: 2px solid var(--accent-glow);
+            animation: pop-in 0.5s ease-out;
+        }
+        @keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes tada { from, to { transform: scale3d(1, 1, 1); } 10%, 20% { transform: scale3d(.9, .9, .9) rotate3d(0, 0, 1, -3deg); } 30%, 50%, 70%, 90% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg); } 40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); } }
+        @keyframes shake { from, to { transform: translate3d(0, 0, 0); } 10%, 30%, 50%, 70%, 90% { transform: translate3d(-10px, 0, 0); } 20%, 40%, 60%, 80% { transform: translate3d(10px, 0, 0); } }
+        .modal-close {
+            position: absolute; top: 15px; right: 20px; font-size: 1.8rem;
+            cursor: pointer; color: var(--text-light);
+        }
+        .modal h2 { font-family: 'Orbitron', sans-serif; color: var(--accent-glow); margin-bottom: 20px; }
+        .modal p { margin-bottom: 10px; }
+        .help-btn {
+            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            background-color: var(--accent-glow); color: var(--space-dark);
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 999;
+        }
+        /* Media Queries (sin cambios) */
+        @media (max-width: 768px) {
+            .main-title { font-size: 2rem; margin-bottom: 20px; }
+            .memory-board { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .memory-card { height: 80px; }
+            .memory-card .front-face, .memory-card .back-face { font-size: 1.2rem; }
+            .menu-button { padding: 8px 15px; font-size: 0.9rem; gap: 5px; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding-top: 20px; }
+            .game-container { padding: 10px; }
+            .game-header { flex-direction: column; gap: 15px; }
+            #lightning-game .question { font-size: 2.2rem; margin: 15px 0; }
+            #lightning-game .option { font-size: 1.5rem; padding: 10px; }
+            .memory-board { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .memory-card { height: 70px; }
+            .memory-card .front-face, .memory-card .back-face { font-size: 1rem; }
+            .memory-card .back-face { font-size: 2rem; }
+            .menu-button { top: 15px; right: 15px; }
+        }
+         @media (max-width: 380px) {
+             .memory-board { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+             .memory-card { height: 60px; }
+             .memory-card .front-face, .memory-card .back-face { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="starry-background"></div>
+    <div id="image-overlay"></div>
+    <a href="index.html" class="menu-button"><span>MENÚ PRINCIPAL</span><i class="fas fa-rocket"></i></a>
+    <div class="container">
+        <!-- Contenido HTML (sin cambios) -->
+        <div id="game-selection" class="game-selection">
+            <div class="game-card">
+                <h2>ATAQUE DE ASTEROIDES</h2>
+                <p>¡Piensa rápido! Responde antes de que se acabe el tiempo o tus escudos fallen. ¡Cada acierto es un asteroide destruido!</p>
+                <button class="game-start-btn" data-game="lightning">JUGAR</button>
+            </div>
+            <div class="game-card">
+                <h2>CONECTA CONSTELACIONES</h2>
+                <p>Una nebulosa ha mezclado las constelaciones. Encuentra los pares de operaciones y resultados para restaurar el mapa estelar.</p>
+                <button class="game-start-btn" data-game="memory">JUGAR</button>
+            </div>
+        </div>
+        <div id="lightning-game" class="game-container hidden">
+             <div class="game-header">
+                <h2 class="game-title">Ataque de Asteroides</h2>
+                <div class="game-stats">
+                    <div class="stat">Puntos: <span id="lightning-score">0</span></div>
+                    <div class="stat">Vidas: <span id="lightning-lives">❤️❤️❤️</span></div>
+                    <div class="stat">Tiempo: <span id="lightning-timer">60</span>s</div>
+                </div>
+                <button class="exit-btn" data-game="lightning">Salir</button>
+            </div>
+            <div id="lightning-question" class="question">3 × 4 = ?</div>
+            <div id="lightning-options" class="options"></div>
+        </div>
+        <div id="memory-game" class="game-container hidden">
+            <div class="game-header">
+                <h2 class="game-title">Conecta Constelaciones</h2>
+                <div class="game-stats">
+                    <div class="stat">Intentos: <span id="memory-attempts">0</span></div>
+                    <div class="stat">Pares: <span id="memory-matches">0</span> / 8</div>
+                </div>
+                <button class="exit-btn" data-game="memory">Salir</button>
+            </div>
+            <div id="memory-board" class="memory-board"></div>
+        </div>
+    </div>
+    <div class="help-btn" id="help-btn"><i class="fas fa-question"></i></div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close">×</span>
+            <div id="modal-content-inner"></div>
+        </div>
+    </div>
+    <!-- AUDIO ELEMENTS -->
+    <audio id="sound-start" src="https://www.soundjay.com/buttons/sounds/button-7.mp3" preload="auto"></audio>
+    <audio id="sound-correcto" src="sound/correcto.mp3" preload="auto"></audio>
+    <audio id="sound-incorrecto" src="sound/incorrecto.mp3" preload="auto"></audio>
+    <audio id="sound-aprobado" src="sound/aprobado.mp3" preload="auto"></audio>
+    <audio id="sound-reprobado" src="sound/reprobado.mp3" preload="auto"></audio>
+    <audio id="sound-flip" src="https://www.soundjay.com/misc/sounds/wind-chime-01.mp3" preload="auto"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="progress-manager.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ... (el script es el mismo hasta `generateLightningQuestion`) ...
+        const gameSelection = document.getElementById('game-selection');
+        const lightningGameEl = document.getElementById('lightning-game');
+        const memoryGameEl = document.getElementById('memory-game');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content-inner');
+        const modalClose = document.querySelector('.modal-close');
+        
+        const sounds = { 
+            start: document.getElementById('sound-start'), correct: document.getElementById('sound-correcto'), 
+            incorrect: document.getElementById('sound-incorrecto'), win: document.getElementById('sound-aprobado'), 
+            lose: document.getElementById('sound-reprobado'), flip: document.getElementById('sound-flip'), 
+        };
+
+        const ALL_UNIQUE_PAIRS = [];
+        for (let i = 2; i <= 10; i++) { for (let j = i; j <= 10; j++) { ALL_UNIQUE_PAIRS.push({ q: `${i} × ${j}`, a: i * j }); } }
+        let lightningState = {};
+        let memoryState = {};
+        
+        document.querySelectorAll('.game-start-btn').forEach(btn => btn.addEventListener('click', (e) => startGame(e.target.dataset.game)));
+        document.querySelectorAll('.exit-btn').forEach(btn => btn.addEventListener('click', exitGame));
+        modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('help-btn').addEventListener('click', showHelp);
+
+        function startGame(gameType) {
+            sounds.start.play();
+            gameSelection.classList.add('hidden');
+            if (gameType === 'lightning') {
+                lightningGameEl.classList.remove('hidden');
+                initLightningGame();
+            } else if (gameType === 'memory') {
+                memoryGameEl.classList.remove('hidden');
+                initMemoryGame();
+            }
+        }
+
+        function exitGame() {
+            gameSelection.classList.remove('hidden');
+            lightningGameEl.classList.add('hidden');
+            memoryGameEl.classList.add('hidden');
+            if (lightningState.interval) clearInterval(lightningState.interval);
+        }
+
+        function showModal(title, content, buttonText) {
+            modalContent.innerHTML = `<h2>${title}</h2><div>${content}</div><button class="modal-button">${buttonText}</button>`;
+            modal.classList.remove('hidden');
+        }
+        
+        function launchConfetti(intensity) {
+             const particleCount = 200 * intensity;
+             confetti({ particleCount, spread: 90, origin: { y: 0.6 } });
+        }
+        
+        function showHelp() {
+            showModal('AYUDA', `<h3>ATAQUE DE ASTEROIDES</h3><p>Tienes 60 segundos y 3 vidas para destruir asteroides (responder preguntas). ¡Consigue la mayor puntuación!</p><h3>CONECTA CONSTELACIONES</h3><p>Voltea las cartas y encuentra los pares de operación y resultado para despejar el mapa estelar.</p>`, 'ENTENDIDO');
+            modalContent.querySelector('button').addEventListener('click', () => modal.classList.add('hidden'));
+        }
+
+        function initLightningGame() {
+            lightningState = { score: 0, timer: 60, lives: 3, interval: null, question: [], };
+            lightningState.interval = setInterval(updateLightningTimer, 1000);
+            updateLightningUI();
+            generateLightningQuestion();
+        }
+
+        function updateLightningTimer() {
+            lightningState.timer--;
+            updateLightningUI();
+            if (lightningState.timer <= 0) { 
+                updateProgress(false, 0);
+                endLightningGame(); 
+            }
+        }
+
+        function generateLightningQuestion() {
+            const a = Math.floor(Math.random() * 9) + 2;
+            const b = Math.floor(Math.random() * 9) + 2;
+            lightningState.question = [a, b];
+            const correctAnswer = a * b;
+            document.getElementById('lightning-question').textContent = `${a} × ${b} = ?`;
+            let options = new Set([correctAnswer]);
+            while (options.size < 4) {
+                const offset = Math.floor(Math.random() * 10) - 5;
+                const wrongAnswer = correctAnswer + offset;
+                if (wrongAnswer > 0 && wrongAnswer !== correctAnswer) options.add(wrongAnswer);
+            }
+            const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+            const optionsContainer = document.getElementById('lightning-options');
+            optionsContainer.innerHTML = '';
+            shuffledOptions.forEach(option => {
+                const el = document.createElement('div');
+                el.className = 'option'; // Empezar con la clase base
+                el.textContent = option;
+                
+                const isCorrect = option === correctAnswer;
+                // Añadir clases para el efecto :active
+                el.classList.add(isCorrect ? 'evaluating-correct' : 'evaluating-incorrect');
+                
+                // Usar { once: true } para que el listener se elimine solo
+                el.addEventListener('click', () => checkLightningAnswer(isCorrect, el), { once: true });
+                optionsContainer.appendChild(el);
+            });
+        }
+        
+        function checkLightningAnswer(isCorrect, element) {
+            // Deshabilitar todos los botones para prevenir múltiples clics
+            const allOptions = document.querySelectorAll('#lightning-game .option');
+            allOptions.forEach(el => {
+                el.classList.add('disabled');
+                // Remover clases de evaluación para que no interfieran con los estilos finales
+                el.classList.remove('evaluating-correct', 'evaluating-incorrect'); 
+            });
+
+            if (isCorrect) {
+                sounds.correct.play();
+                element.classList.add('correct');
+                lightningState.score += 10;
+            } else {
+                sounds.incorrect.play();
+                element.classList.add('incorrect');
+                // Encontrar y resaltar la respuesta correcta
+                allOptions.forEach(opt => {
+                    // La opción correcta es la que no fue la incorrecta seleccionada, y que tiene el valor correcto
+                    if (parseInt(opt.textContent) === (lightningState.question[0] * lightningState.question[1])) {
+                        opt.classList.add('correct');
+                    }
+                });
+                lightningState.lives--;
+                if (lightningState.lives <= 0) {
+                    updateProgress(false, 0);
+                    endLightningGame();
+                    return;
+                }
+            }
+            
+            updateProgress(isCorrect, 10);
+            updateLightningUI();
+            setTimeout(generateLightningQuestion, 1200);
+        }
+
+
+        function endLightningGame() {
+            clearInterval(lightningState.interval);
+            let rank = "Cadete Espacial";
+            if (lightningState.score >= 50) rank = "Piloto Habilidoso";
+            if (lightningState.score >= 100) rank = "As Espacial";
+            if (lightningState.score >= 150) rank = "Leyenda Cósmica";
+            const message = `<p>Puntuación Final: ${lightningState.score}</p><p>Rango Obtenido: <strong>${rank}</strong></p>`;
+            showModal('INFORME DE MISIÓN', message, 'JUGAR DE NUEVO');
+            
+            if (lightningState.score > 0) {
+                sounds.win.play();
+                launchConfetti(0.8);
+            } else {
+                sounds.lose.play();
+            }
+
+            modalContent.querySelector('button').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                initLightningGame();
+            });
+        }
+        function updateLightningUI() {
+            document.getElementById('lightning-score').textContent = lightningState.score;
+            document.getElementById('lightning-timer').textContent = lightningState.timer;
+            document.getElementById('lightning-lives').textContent = '❤️'.repeat(Math.max(0, lightningState.lives));
+        }
+
+        // --- LÓGICA DE CONECTA CONSTELACIONES (MEMORY GAME) (sin cambios) ---
+        function initMemoryGame() {
+            memoryState = { cards: [], flippedCards: [], matches: 0, attempts: 0, lockBoard: false, };
+            updateMemoryUI();
+            createMemoryBoard();
+        }
+
+        function createMemoryBoard() {
+            const board = document.getElementById('memory-board');
+            board.innerHTML = '';
+            memoryState.cards = [];
+            const shuffledPairs = [...ALL_UNIQUE_PAIRS].sort(() => 0.5 - Math.random());
+            const gamePairs = shuffledPairs.slice(0, 8);
+            let cardData = [];
+            gamePairs.forEach((p, i) => {
+                cardData.push({ content: p.q, pairId: i });
+                cardData.push({ content: p.a, pairId: i });
+            });
+            cardData.sort(() => Math.random() - 0.5);
+            cardData.forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.pairId = data.pairId;
+                card.innerHTML = `<div class="front-face">${data.content}</div><div class="back-face">🌌</div>`;
+                card.addEventListener('click', () => flipMemoryCard(card));
+                board.appendChild(card);
+                memoryState.cards.push(card);
+            });
+        }
+        
+        function flipMemoryCard(card) {
+            if (memoryState.lockBoard || card.classList.contains('flip') || memoryState.flippedCards.length === 2) return;
+            sounds.flip.play();
+            card.classList.add('flip');
+            memoryState.flippedCards.push(card);
+            if (memoryState.flippedCards.length === 2) {
+                memoryState.attempts++;
+                updateMemoryUI();
+                checkForMemoryMatch();
+            }
+        }
+
+        function checkForMemoryMatch() {
+            memoryState.lockBoard = true;
+            const [card1, card2] = memoryState.flippedCards;
+            const isMatch = card1.dataset.pairId === card2.dataset.pairId;
+            
+            // Aplicar destello visual en las caras frontales (opcional, pero mantiene el efecto)
+            if (isMatch) {
+                card1.querySelector('.front-face').style.backgroundColor = 'var(--success-glow)';
+                card2.querySelector('.front-face').style.backgroundColor = 'var(--success-glow)';
+            } else {
+                card1.querySelector('.front-face').style.backgroundColor = 'var(--fail-glow)';
+                card2.querySelector('.front-face').style.backgroundColor = 'var(--fail-glow)';
+            }
+            
+            setTimeout(() => {
+                 isMatch ? disableCards() : unflipCards();
+            }, 100);
+        }
+
+        function disableCards() {
+            sounds.correct.play();
+            updateProgress(true, 15);
+            memoryState.flippedCards.forEach(c => {
+                c.classList.add('matched', 'correct');
+            });
+            memoryState.matches++;
+            updateMemoryUI();
+            resetFlipState();
+            if (memoryState.matches === 8) endMemoryGame();
+        }
+
+        function unflipCards() {
+            sounds.incorrect.play();
+            updateProgress(false, 0);
+            memoryState.flippedCards.forEach(c => c.classList.add('incorrect'));
+            setTimeout(() => {
+                memoryState.flippedCards.forEach(c => {
+                    c.classList.remove('flip', 'incorrect');
+                    c.querySelector('.front-face').style.backgroundColor = '';
+                });
+                resetFlipState();
+            }, 1200);
+        }
+        
+        function resetFlipState() {
+            memoryState.flippedCards = [];
+            memoryState.lockBoard = false;
+        }
+
+        function endMemoryGame() {
+            sounds.win.play();
+            launchConfetti(1.0);
+            const message = `<p>¡Mapa estelar restaurado!</p><p>Lo lograste en <strong>${memoryState.attempts}</strong> intentos.</p>`;
+            setTimeout(() => {
+                showModal('¡CONSTELACIÓN COMPLETA!', message, 'JUGAR DE NUEVO');
+                modalContent.querySelector('button').addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    initMemoryGame();
+                });
+            }, 500);
+        }
+
+        function updateMemoryUI() {
+            document.getElementById('memory-attempts').textContent = memoryState.attempts;
+            document.getElementById('memory-matches').textContent = `${memoryState.matches} / 8`;
+        }
+    });
+    </script>
+</body>
+</html>
